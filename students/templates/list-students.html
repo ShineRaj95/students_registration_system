@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>College Registration System</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <br>
+        <a href="/logout" class="btn btn-info float-right">Logout</a><br><br>
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center">Manage Students</h1>
+                <a href="create/" class="btn btn-primary float-right">Add Student</a>
+            </div><br>
+            <div class="col-12">
+                <div id="response" ></div>
+                {% if messages %}
+                <div class="messages alert alert-success response-fade">
+                    {% for message in messages %}
+                    <span {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-4">
+                <input type="text" placeholder="Search Student By Name" id='search-students' oninput="getFilteredStudents()" class="form-control">
+            </div>
+            <div class="col-4">
+                <input type="text" placeholder="Search Student By Course" id='search-students-by-course' oninput="getFilteredStudentsByCourse()" class="form-control">
+            </div>
+        </div><br>
+        <div class="row">
+            <div class="col-12 table-responsive" style="margin-top: 5%;">
+                <table class="table table-bordered">
+                    <thead class="table-dark"> 
+                        <tr>
+                            <th class="text-center">Name</th>
+                            <th class="text-center">Age</th>
+                            <th class="text-center">Course</th>
+                            <th width="15%" class="text-center">Edit</th>
+                            <th width="15%" class="text-center">Quiz</th>
+                        </tr>
+                    </thead>
+                    <tbody class="table-sm" id="table-content">
+                        {% for student in students %}
+                        <tr id="student{{student.id}}">
+                            <td>{{ student.name }}</td>
+                            <td class="text-center">{{ student.age }}</td>
+                            <td class="text-center">{{ student.course }}</td>
+                            <td class="text-center"><a href="/edit-student/{{student.id}}" class="btn btn-primary btn-sm">Edit</a></td>
+                            <td class="text-center"><a href="" class="btn btn-danger btn-sm remove-student" student-id="{{student.id}}" data-toggle="modal" data-target="#deleteModal" >Delete</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade stick-up" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h4 class="modal-title">Delete Confirmation</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <p class="no-marginn">Are you sure you want to remove the student?</p>
+              </div>
+              <div class="modal-footer">
+                  <a  class="btn btn-danger btn-sm text-white" id="remove-button"   delete-id="">Delete</a>
+                  <button data-dismiss="modal" class="btn btn-primary btn-sm" type="button">Cancel</button>
+              </div>
+            </div>
+        </div>
+    </div>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js"  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+crossorigin="anonymous"></script>
+<script>
+   
+
+    $(document).ready(function(){
+        setTimeout(function() { $('.response-fade').fadeOut(); }, 1500);
+    });
+    
+
+    $(document).on('click','.remove-student',function(e){
+        e.preventDefault();
+        $('#remove-button').removeAttr('delete-id');
+        var student=$(this).attr('student-id');
+        $('#remove-button').attr('delete-id',student);
+    });
+
+    $(document).on('click','#remove-button',function(){
+        var studentId=$(this).attr('delete-id');
+        deleteUser(studentId);
+    });
+    
+    function deleteUser(studentId){
+        $.ajax({
+            headers: {
+                'X-CSRFToken': '{{csrf_token}}'
+            },
+            url: "/delete-student/",
+            type: "POST",
+            dataType:"json",
+            data:{
+                studentId:studentId,
+            },
+            success: function(result){
+                $('#response').empty();
+                $('#response').css('display','inline');
+                $('#student'+studentId).remove();
+                $("#deleteModal .close").click();
+                $('#response').html('<div class="alert alert-success">Student deleted successfully </div>');
+                setTimeout(function() { $('#response').fadeOut(); }, 1500);
+
+            }
+        });
+    }
+
+
+
+
+    function getFilteredStudents(){
+        $('#search-students-by-course').val('');
+        var userName= $('#search-students').val();
+        $.ajax({
+            headers: {
+                'X-CSRFToken': '{{csrf_token}}'
+            },
+            url: "/filtered-students/",
+            type: "POST",
+            dataType:"json",
+            data:{
+                userName:userName,
+            },
+            success: function(result){
+                var listUser = JSON.parse(result);
+                listAllStudents(listUser);
+            }
+        });
+    }
+
+    function getFilteredStudentsByCourse(){
+        $('#search-students').val('');
+        var course= $('#search-students-by-course').val();
+        $.ajax({
+            headers: {
+                'X-CSRFToken': '{{csrf_token}}'
+            },
+            url: "/filtered-students-by-course/",
+            type: "POST",
+            dataType:"json",
+            data:{
+                course:course,
+            },
+            success: function(result){
+                var listUser = JSON.parse(result);
+                listAllStudents(listUser);
+            }
+        });
+    }
+
+
+    function listAllStudents(data){
+        $('#table-content').empty();
+        $.each(data ,function(id,value){
+            $('#table-content').append('<tr id="student'+value.pk+'"><td>'+value.fields.name+'</td><td class="text-center">'+value.fields.age+'</td><td class="text-center">'+value.fields.course+'</td><td  class="text-center"><a href="/edit-student/'+value.pk+'" class="btn btn-primary btn-sm"  >Edit</a></td><td class="text-center"><a href="" class="btn btn-danger btn-sm  remove-student" student-id="'+value.pk+'" data-toggle="modal" data-target="#deleteModal" >Delete</a></td></tr>');
+        });
+    }
+
+
+    
+</script>
+</body>
+</html>
